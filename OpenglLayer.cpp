@@ -55,25 +55,25 @@ OpenglLayer::dispose()
     if(!m_initialised) return;
     m_initialised = false;
     
-    for(auto program : m_programs)
-    {
-        GL_CHECK(glDeleteProgram(program));
-    }
-    
-    for(auto shaderObject : m_shaderObjects)
-    {
-        GL_CHECK(glDeleteShader(shaderObject));
-    }
-    
-    for(auto vbo : m_vertexBuffersObjects)
-    {
-        GL_CHECK(glDeleteBuffers(1, &vbo.id));
-    }
-    
-    for(auto vao : m_vertexArrayObjects)
-    {
-        GL_CHECK(glDeleteVertexArrays(1, &vao.id));
-    }
+    //    for(auto program : m_programs)
+    //    {
+    //        GL_CHECK(glDeleteProgram(program));
+    //    }
+    //
+    //    for(auto shaderObject : m_shaderObjects)
+    //    {
+    //        GL_CHECK(glDeleteShader(shaderObject));
+    //    }
+    //
+    //    for(auto vbo : m_vertexBuffersObjects)
+    //    {
+    //        GL_CHECK(glDeleteBuffers(1, &vbo.id));
+    //    }
+    //
+    //    for(auto vao : m_vertexArrayObjects)
+    //    {
+    //        GL_CHECK(glDeleteVertexArrays(1, &vao.id));
+    //    }
     
     //TODO: opengl context destruction will go here
 }
@@ -238,6 +238,40 @@ OpenglLayer::detachAllShaderObjectsFromProgram(ShaderProgram const & program) co
 
 //-----------------------------------------------//
 void
+OpenglLayer::detachAndDeleteShaderObjectFromProgram(const ShaderProgram &program, const ShaderObject &object) const
+{
+    assert(program != OPENGL_INVALID_OBJECT && "shader program is in an invalid state");
+    assert(object  != OPENGL_INVALID_OBJECT && "shader object is in an invalid state");
+    //TODO: maybe some weird things happening if trying to detach something that isnt attached
+    GL_CHECK(glDetachShader(program,object));
+    GL_CHECK(glDeleteShader(object));
+}
+
+//-----------------------------------------------//
+void
+OpenglLayer::detachAndDeleteAllShaderObjectsFromProgram(const ShaderProgram &program) const
+{
+    assert(program != OPENGL_INVALID_OBJECT && "shader program is in an invalid state");
+    
+    if(program.shaderObjects[0] != OPENGL_INVALID_OBJECT)
+    {
+        GL_CHECK(glDetachShader(program, program.shaderObjects[0]));
+        GL_CHECK(glDeleteShader(program.shaderObjects[0]));
+    }
+    else if(program.shaderObjects[1] != OPENGL_INVALID_OBJECT)
+    {
+        GL_CHECK(glDetachShader(program, program.shaderObjects[1]));
+        GL_CHECK(glDeleteShader(program.shaderObjects[1]));
+    }
+    else if(program.shaderObjects[2] != OPENGL_INVALID_OBJECT)
+    {
+        GL_CHECK(glDetachShader(program, program.shaderObjects[2]));
+        GL_CHECK(glDeleteShader(program.shaderObjects[2]));
+    }
+}
+
+//-----------------------------------------------//
+void
 OpenglLayer::compileShaderObject(ShaderObject & object) const
 {
     assert(object != OPENGL_INVALID_OBJECT && "the shader object being compiled is in an invald state");
@@ -321,6 +355,10 @@ OpenglLayer::linkProgram(ShaderProgram & program)
             //Exit with failure.
             return;
         }
+        else // if link succesfull
+        {
+            detachAndDeleteAllShaderObjectsFromProgram(program);
+        }
         
         return;
     }
@@ -345,7 +383,7 @@ OpenglLayer::createVertexBufferObject(VertexBufferType const & type, GLfloat poi
     GL_CHECK(glBufferData(GL_ARRAY_BUFFER, numberOfPoints * sizeof(float), points, static_cast<GLenum>(type)));
     GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
     
-    m_vertexBuffersObjects.push_back(vbo);
+    // m_vertexBuffersObjects.push_back(vbo);
     
     return vbo;
 }
@@ -358,7 +396,7 @@ OpenglLayer::createVertexArrayObject()
     
     GL_CHECK(glGenVertexArrays(1, &vao.id));
     
-    m_vertexArrayObjects.push_back(vao);
+    //m_vertexArrayObjects.push_back(vao);
     
     return vao;
 }

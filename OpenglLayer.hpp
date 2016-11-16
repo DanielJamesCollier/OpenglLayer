@@ -167,6 +167,7 @@ public:
      - create a shader object
      - compile shader object
      - attach objects to program
+     - bind attrib locations ? optional
      - link program
      */
     
@@ -179,6 +180,8 @@ public:
     void attachShaderObjectToProgram(ShaderProgram const & program, ShaderObject const & object) const;
     void detachShaderObjectFromProgram(ShaderProgram const & program, ShaderObject const & object) const;
     void detachAllShaderObjectsFromProgram(ShaderProgram const & program) const;
+    void detachAndDeleteShaderObjectFromProgram(ShaderProgram const & program, ShaderObject const & object) const;
+    void detachAndDeleteAllShaderObjectsFromProgram(ShaderProgram const & program) const;
     void linkProgram(ShaderProgram & program);
     void deleteShaderProgram(ShaderProgram const & program) const;
     void deleteShaderObject(ShaderObject const & object) const;
@@ -209,10 +212,10 @@ public:
     
     
 private:
-    std::vector<ShaderProgram>      m_programs;
-    std::vector<ShaderObject>       m_shaderObjects;
-    std::vector<VertexBufferObject> m_vertexBuffersObjects;
-    std::vector<VertexArrayObject>  m_vertexArrayObjects;
+    //std::vector<ShaderProgram>      m_programs;
+    //std::vector<ShaderObject>       m_shaderObjects;
+    //std::vector<VertexBufferObject> m_vertexBuffersObjects;
+    //std::vector<VertexArrayObject>  m_vertexArrayObjects;
     
     int  m_majorVersion;
     int  m_minorVersion;
