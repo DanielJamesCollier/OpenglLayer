@@ -55,14 +55,24 @@ OpenglLayer::dispose()
     if(!m_initialised) return;
     m_initialised = false;
     
-    for(auto p : m_programs)
+    for(auto program : m_programs)
     {
-        GL_CHECK(glDeleteProgram(p));
+        GL_CHECK(glDeleteProgram(program));
     }
     
-    for(auto s : m_shaderObjects)
+    for(auto shaderObject : m_shaderObjects)
     {
-        GL_CHECK(glDeleteShader(s));
+        GL_CHECK(glDeleteShader(shaderObject));
+    }
+    
+    for(auto vbo : m_vertexBuffersObjects)
+    {
+        GL_CHECK(glDeleteBuffers(1, &vbo.id));
+    }
+    
+    for(auto vao : m_vertexArrayObjects)
+    {
+        GL_CHECK(glDeleteVertexArrays(1, &vao.id));
     }
     
     //TODO: opengl context destruction will go here
@@ -169,6 +179,24 @@ OpenglLayer::createShaderObject(ShaderObjectType const & type) const
 
 //-----------------------------------------------//
 void
+OpenglLayer::attachSourceToShaderObject(ShaderObject & object, std::string const & source) const
+{
+    assert(object != OPENGL_INVALID_OBJECT && "shader object is in invalid state");
+    assert(!(source.empty()) && "source is empty");
+    
+    const GLchar* shaderSourceStrings[1];
+    GLint shaderSourceStringLengths[1];
+    
+    shaderSourceStrings[0] = source.c_str();
+    shaderSourceStringLengths[0] = static_cast<GLint>(source.length());
+    
+    GL_CHECK(glShaderSource(object, 1, shaderSourceStrings, shaderSourceStringLengths));
+    
+    object.hasSource = true;
+}
+
+//-----------------------------------------------//
+void
 OpenglLayer::attachShaderObjectToProgram(ShaderProgram const & program, ShaderObject const & object) const
 {
     assert(program != OPENGL_INVALID_OBJECT && "shader program is in an invalid state");
@@ -210,71 +238,38 @@ OpenglLayer::detachAllShaderObjectsFromProgram(ShaderProgram const & program) co
 
 //-----------------------------------------------//
 void
-OpenglLayer::compileShaderObject(ShaderObject & shaderObject) const
+OpenglLayer::compileShaderObject(ShaderObject & object) const
 {
-    assert(shaderObject != OPENGL_INVALID_OBJECT && "the shader object being compiled is in an invald state");
-    assert(shaderObject.isCompiled && "the shader object being compiled is allready compiled");
+    assert(object != OPENGL_INVALID_OBJECT && "the shader object being compiled is in an invald state");
+    assert((!(object.isCompiled)) && "the shader object being compiled is allready compiled");
+    assert(object.hasSource && "the shader object has no source code to compile");
     //assert(shaderObject.type == ShaderObjectType::INVALID); TODO: check this out
     
-    const GLchar* shaderSourceStrings[1];
-    GLint shaderSourceStringLengths[1];
+    GL_CHECK(glCompileShader(object));
     
-    shaderSourceStrings[0] = shaderObject.source.c_str();
-    shaderSourceStringLengths[0] = static_cast<GLint>(shaderObject.source.length());
+    GLint isCompiled = GL_FALSE;
     
-    GL_CHECK(glShaderSource(shaderObject, 1, shaderSourceStrings, shaderSourceStringLengths));
-    GL_CHECK(glCompileShader(shaderObject));
+    GL_CHECK(glGetShaderiv(object,GL_COMPILE_STATUS, &isCompiled));
     
-    // check for a sucessful compile
-    if (!isShaderObjectOkay(shaderObject, GL_COMPILE_STATUS, "ShaderOBJ: implement shader names probs in a higher abstraction!! - Error: Failed to Compile"))
+    if(isCompiled == GL_FALSE)
     {
-        shaderObject.isCompiled = false;
+        GLint maxLength = 0;
+        GL_CHECK(glGetShaderiv(object, GL_INFO_LOG_LENGTH, &maxLength));
+        
+        // The maxLength includes the NULL character
+        std::vector<GLchar> errorLog(maxLength);
+        GL_CHECK(glGetShaderInfoLog(object, maxLength, &maxLength, &errorLog[0]));
+        
+        // Provide the infolog in whatever manor you deem best.
+        // Exit with failure.
+        GL_CHECK(glDeleteShader(object)); // Don't leak the shader.
+        
+        object.isCompiled = false;
+        
         return;
+        
     }
-    
-    shaderObject.isCompiled = true;
-}
-
-//-----------------------------------------------//
-bool
-OpenglLayer::isShaderProgramOkay(ShaderProgram const & program, GLenum flag, const std::string& errorMessage) const
-{
-    assert(program != OPENGL_INVALID_OBJECT && "shader program is in an invalid state");
-    assert(flag == GL_LINK_STATUS && "invalid flag"); // limit flags
-    
-    GLint success = 0;
-    GLchar error[1024] = { 0 };
-    
-    GL_CHECK(glGetProgramiv(program, flag, &success));
-    
-    if (!success)
-    {
-        GL_CHECK(glGetProgramInfoLog(program, sizeof(error), NULL, error));
-        std::cerr << errorMessage << error << std::endl;
-        return(false);
-    }
-    return(true);
-}
-
-//-----------------------------------------------//
-bool
-OpenglLayer::isShaderObjectOkay(ShaderObject const & object, GLenum flag, const std::string& errorMessage) const
-{
-    assert(object != OPENGL_INVALID_OBJECT && "shader object is in an invald state");
-    assert(flag == GL_LINK_STATUS && "invalid flag"); // limit flags
-    
-    GLint success = 0;
-    GLchar error[1024] = { 0 };
-    
-    GL_CHECK(glGetShaderiv(object, flag, &success));
-    
-    if (!success)
-    {
-        GL_CHECK(glGetShaderInfoLog(object, sizeof(error), NULL, error));
-        std::cerr << errorMessage << error << std::endl;
-        return(false);
-    }
-    return(true);
+    object.isCompiled = true;
 }
 
 //-----------------------------------------------//
@@ -295,7 +290,7 @@ OpenglLayer::deleteShaderObject(ShaderObject const & object) const
 
 //-----------------------------------------------//
 void
-OpenglLayer::linkProgram(ShaderProgram & program) const
+OpenglLayer::linkProgram(ShaderProgram & program)
 {
     assert(program != OPENGL_INVALID_OBJECT && "shader program is in an invalid state");
     
@@ -306,16 +301,26 @@ OpenglLayer::linkProgram(ShaderProgram & program) const
     {
         GL_CHECK(glLinkProgram(program));
         
-        if (!isShaderProgramOkay(program, GL_LINK_STATUS, "Program: " + std::to_string(program)))
+        GLint isLinked = GL_FALSE;
+        
+        GL_CHECK(glGetProgramiv(program,GL_INFO_LOG_LENGTH,&isLinked));
+        
+        if(isLinked == GL_FALSE)
         {
-            program.linked = false;
-            detachAllShaderObjectsFromProgram(program);
+            GLint maxLength = 0;
+            GL_CHECK(glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength));
+            
+            //The maxLength includes the NULL character
+            std::vector<GLchar> infoLog(maxLength);
+            GL_CHECK(glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]));
+            
+            //The program is useless now. So delete it.
+            GL_CHECK(glDeleteProgram(program));
+            
+            //Provide the infolog in whatever manner you deem best.
+            //Exit with failure.
             return;
         }
-        
-        detachAllShaderObjectsFromProgram(program);
-        
-        program.linked = true;
         
         return;
     }
@@ -326,9 +331,34 @@ void
 OpenglLayer::bindShaderProgram(ShaderProgram const & program)
 {
     assert(program != OPENGL_INVALID_OBJECT && "the program being bound is in an invalid state");
+    GL_CHECK(glUseProgram(program.id));
+}
+
+//-----------------------------------------------//
+VertexBufferObject
+OpenglLayer::createVertexBufferObject(VertexBufferType const & type, GLfloat points[], int numberOfPoints)
+{
+    VertexBufferObject vbo;
     
-    if(m_boundProgram != program)
-    {
-        GL_CHECK(glUseProgram(program));
-    }
+    GL_CHECK(glGenBuffers(1, &vbo.id));;
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CHECK(glBufferData(GL_ARRAY_BUFFER, numberOfPoints * sizeof(float), points, static_cast<GLenum>(type)));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    
+    m_vertexBuffersObjects.push_back(vbo);
+    
+    return vbo;
+}
+
+//-----------------------------------------------//
+VertexArrayObject
+OpenglLayer::createVertexArrayObject()
+{
+    VertexArrayObject vao;
+    
+    GL_CHECK(glGenVertexArrays(1, &vao.id));
+    
+    m_vertexArrayObjects.push_back(vao);
+    
+    return vao;
 }

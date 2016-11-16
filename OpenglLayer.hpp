@@ -15,15 +15,18 @@
 #include <string>
 #include <vector>
 
+#define OPENGL_MAJOR_VERSION  4
+#define OPENGL_MINOR_VERSION  1
+#define OPENGL_INVALID_OBJECT 0
+
 #ifdef __APPLE__
-#include <OpenGL/GL.h>
+//#include <OpenGL/gl.h> // includes 2.1 functionality
+#include <OpenGL/gl3.h> // includes 3.2 functionality
 #elif _WIN32
 #include "GL/glew.h"
 #endif
 
-#define OPENGL_MAJOR_VERSION  4
-#define OPENGL_MINOR_VERSION  1
-#define OPENGL_INVALID_OBJECT 0
+
 
 //assert(obj.boolean) = if boolean is false then fail
 //assert(1 == 0) if false then fail kinda annoying
@@ -34,57 +37,110 @@
  - add context creation into layer so it is based on the version defines.
  */
 
-struct ShaderProgram
+class ShaderProgram
 {
-    bool operator==(ShaderProgram const & rhs)
+    friend class OpenglLayer;
+    
+public:
+    ShaderProgram()
+    :
+    id(OPENGL_INVALID_OBJECT),
+    shaderObjects({OPENGL_INVALID_OBJECT,OPENGL_INVALID_OBJECT,OPENGL_INVALID_OBJECT}),
+    linked(false)
     {
-        return(this->id == rhs.id);
     }
     
-    bool operator!=(ShaderProgram const & rhs)
-    {
-        return(!(this->id == rhs.id));
-    }
+    bool operator==(ShaderProgram const & rhs) { return(this->id == rhs.id);}
+    bool operator!=(ShaderProgram const & rhs) { return(!(this->id == rhs.id));}
+    operator int() const { return id;}
     
-    operator int() const
-    {
-        return id;
-    }
-    
-    GLuint id = OPENGL_INVALID_OBJECT;
-    std::array<int, 3> shaderObjects = {OPENGL_INVALID_OBJECT,
-        OPENGL_INVALID_OBJECT,
-        OPENGL_INVALID_OBJECT}; // TODO: review this - sets a max limit on numeber of shaderObjects per shader program ??
-    bool linked = false;
+private:
+    GLuint id;;
+    std::array<int, 3> shaderObjects;
+    bool linked;
 };
 
 enum class ShaderObjectType
 {
-    VERTEX_SHADER   = GL_VERTEX_SHADER,
-    FRAGMENT_SHADER = GL_FRAGMENT_SHADER,
+    VERTEX_SHADER          = GL_VERTEX_SHADER,
+#if OPENGL_MAJOR_VERSION >= 4
+    TESS_CONTROL_SHADER    = GL_TESS_CONTROL_SHADER,
+    TESS_EVALUATION_SHADER = GL_TESS_EVALUATION_SHADER,
+#endif
+    GEOMETRY_SHADER        = GL_GEOMETRY_SHADER,
+    FRAGMENT_SHADER        = GL_FRAGMENT_SHADER,
+#if OPENGL_MAJOR_VERSION >= 4 && OPENGL_MINOR_VERSION >= 3
+    CUMPUTE_SHADER         = GL_COMPUTE_SHADER
+#endif
 };
 
-struct ShaderObject
+class ShaderObject
 {
-    bool operator==(ShaderObject const & rhs)
+    friend class OpenglLayer;
+    
+public:
+    ShaderObject()
+    :
+    id(OPENGL_INVALID_OBJECT),
+    type(ShaderObjectType::VERTEX_SHADER),
+    hasSource(false),
+    isCompiled(false)
     {
-        return(this->id == rhs.id);
     }
     
-    bool operator!=(ShaderObject const & rhs)
+    bool operator==(ShaderObject const & rhs) { return(this->id == rhs.id); }
+    bool operator!=(ShaderObject const & rhs) { return(!(this->id == rhs.id)); }
+    operator int() const { return id; }
+    
+private:
+    GLuint id;
+    ShaderObjectType type;
+    bool hasSource;
+    bool isCompiled;
+};
+
+enum class VertexBufferType
+{
+    OPENGL_STATIC_DRAW   = GL_STATIC_DRAW,
+    OPENGL_DYNAMIC_DRAW  = GL_DYNAMIC_DRAW,
+};
+
+class VertexBufferObject
+{
+    friend class OpenglLayer;
+    
+public:
+    VertexBufferObject()
+    :
+    id(OPENGL_INVALID_OBJECT)
     {
-        return(!(this->id == rhs.id));
     }
     
-    operator int() const
+    bool operator==(VertexBufferObject const & rhs) { return(this->id == rhs.id); }
+    bool operator!=(VertexBufferObject const & rhs) { return(!(this->id == rhs.id)); }
+    operator int() const { return id; }
+    
+private:
+    GLuint id;
+};
+
+class VertexArrayObject
+{
+    friend class OpenglLayer;
+    
+public:
+    VertexArrayObject()
+    :
+    id(OPENGL_INVALID_OBJECT)
     {
-        return id;
     }
     
-    std::string source{""}; // TODO: move into other location to redude shader object size, messes with the alignment
-    GLuint id = OPENGL_INVALID_OBJECT;
-    ShaderObjectType type = ShaderObjectType::VERTEX_SHADER;
-    bool isCompiled = false;
+    bool operator==(VertexArrayObject const & rhs) { return(this->id == rhs.id); }
+    bool operator!=(VertexArrayObject const & rhs) { return(!(this->id == rhs.id)); }
+    operator int() const { return id; }
+    
+private:
+    GLuint id;
 };
 
 class OpenglLayer
@@ -118,15 +174,14 @@ public:
     /*----------------------------------------------------------------------------------------------*/
     ShaderProgram createShaderProgram() const;
     ShaderObject createShaderObject(ShaderObjectType const & type) const;
-    void compileShaderObject(ShaderObject & shaderObject) const;
+    void attachSourceToShaderObject(ShaderObject & object, std::string const & source) const;
+    void compileShaderObject(ShaderObject & object) const;
     void attachShaderObjectToProgram(ShaderProgram const & program, ShaderObject const & object) const;
     void detachShaderObjectFromProgram(ShaderProgram const & program, ShaderObject const & object) const;
     void detachAllShaderObjectsFromProgram(ShaderProgram const & program) const;
-    void linkProgram(ShaderProgram & program) const;
+    void linkProgram(ShaderProgram & program);
     void deleteShaderProgram(ShaderProgram const & program) const;
     void deleteShaderObject(ShaderObject const & object) const;
-    bool isShaderObjectOkay(ShaderObject const & shader, GLenum flag, const std::string& errorMessage) const;
-    bool isShaderProgramOkay(ShaderProgram const & program, GLenum flag, std::string const & errorMessage) const;
     void bindShaderProgram(ShaderProgram const & program);
     /*----------------------------------------------------------------------------------------------*/
     
@@ -141,9 +196,24 @@ public:
     /*----------------------------------------------------------------------------------------------*/
     
     
+    /*
+     *Order of vertex creation*
+     -
+     */
+    
+    /*Texture functions*/
+    /*----------------------------------------------------------------------------------------------*/
+    VertexBufferObject createVertexBufferObject(VertexBufferType const & type, GLfloat points[], int numberOfPoints);
+    VertexArrayObject createVertexArrayObject();
+    /*----------------------------------------------------------------------------------------------*/
+    
+    
 private:
-    std::vector<ShaderProgram> m_programs;
-    std::vector<ShaderObject>  m_shaderObjects;
+    std::vector<ShaderProgram>      m_programs;
+    std::vector<ShaderObject>       m_shaderObjects;
+    std::vector<VertexBufferObject> m_vertexBuffersObjects;
+    std::vector<VertexArrayObject>  m_vertexArrayObjects;
+    
     int  m_majorVersion;
     int  m_minorVersion;
     bool m_initialised;
