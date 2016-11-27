@@ -4,19 +4,27 @@
 //
 //  Created by Daniel Collier on 16/10/2016.
 //  Copyright © 2016 Daniel Collier. All rights reserved.
-//
 
+/*
+ class information
+ 
+ - opengl must be linked with this class
+ - on windows glew must be linked with this class
+ - a context must be created before any of the methods in this class are used
+ - the init() function must be called before any other function in this class
+ */
 #ifndef OpenGLContext_hpp
 #define OpenGLContext_hpp
 
 #include <stdio.h>
-#include "Utils.h"
 #include <Array>
 #include <string>
 #include <vector>
 
 #define OPENGL_MAJOR_VERSION  4
 #define OPENGL_MINOR_VERSION  1
+#define OPENGL_MIN_REQUIRED_VERSION_MAJOR 3
+#define OPENGL_MIN_REQUIRED_VERSION_MINOR 2
 #define OPENGL_INVALID_OBJECT 0
 
 #ifdef __APPLE__
@@ -35,192 +43,298 @@
  TODO
  - add ifdefs for opengl versions
  - add context creation into layer so it is based on the version defines.
+ - think about max objects per program
  */
 
-class ShaderProgram
+namespace OpenglLayer
 {
-    friend class OpenglLayer;
-    
-public:
-    ShaderProgram()
-    :
-    id(OPENGL_INVALID_OBJECT),
-    shaderObjects({OPENGL_INVALID_OBJECT,OPENGL_INVALID_OBJECT,OPENGL_INVALID_OBJECT}),
-    linked(false)
+    /* Shader Classes */
+    /*----------------------------------------------------------------------------------------------*/
+    enum class ShaderObjectType
     {
-    }
-    
-    bool operator==(ShaderProgram const & rhs) { return(this->id == rhs.id);}
-    bool operator!=(ShaderProgram const & rhs) { return(!(this->id == rhs.id));}
-    operator int() const { return id;}
-    
-private:
-    GLuint id;;
-    std::array<int, 3> shaderObjects;
-    bool linked;
-};
-
-enum class ShaderObjectType
-{
-    VERTEX_SHADER          = GL_VERTEX_SHADER,
+        VERTEX_SHADER          = GL_VERTEX_SHADER,
 #if OPENGL_MAJOR_VERSION >= 4
-    TESS_CONTROL_SHADER    = GL_TESS_CONTROL_SHADER,
-    TESS_EVALUATION_SHADER = GL_TESS_EVALUATION_SHADER,
+        TESS_CONTROL_SHADER    = GL_TESS_CONTROL_SHADER,
+        TESS_EVALUATION_SHADER = GL_TESS_EVALUATION_SHADER,
 #endif
-    GEOMETRY_SHADER        = GL_GEOMETRY_SHADER,
-    FRAGMENT_SHADER        = GL_FRAGMENT_SHADER,
+        GEOMETRY_SHADER        = GL_GEOMETRY_SHADER,
+        FRAGMENT_SHADER        = GL_FRAGMENT_SHADER,
 #if OPENGL_MAJOR_VERSION >= 4 && OPENGL_MINOR_VERSION >= 3
-    CUMPUTE_SHADER         = GL_COMPUTE_SHADER
+        COMPUTE_SHADER         = GL_COMPUTE_SHADER
 #endif
-};
-
-class ShaderObject
-{
-    friend class OpenglLayer;
+    };
     
-public:
-    ShaderObject()
-    :
-    id(OPENGL_INVALID_OBJECT),
-    type(ShaderObjectType::VERTEX_SHADER),
-    hasSource(false),
-    isCompiled(false)
+    class ShaderObject
     {
-    }
+        friend class OpenglLayer;
+        
+    public:
+        ShaderObject()
+        :
+        m_id(OPENGL_INVALID_OBJECT),
+        m_type(ShaderObjectType::VERTEX_SHADER),
+        m_hasSource(false),
+        m_isCompiled(false)
+        {
+        }
+        
+        //TODO make opporators only visable to OpenglLayer
+        bool operator==(ShaderObject const & rhs) { return(this->m_id == rhs.m_id); }
+        bool operator!=(ShaderObject const & rhs) { return(!(this->m_id == rhs.m_id)); }
+        operator int() const { return m_id; }
+        
+    private:
+        GLuint           m_id;
+        ShaderObjectType m_type;
+        bool             m_hasSource;
+        bool             m_isCompiled;
+    };
     
-    bool operator==(ShaderObject const & rhs) { return(this->id == rhs.id); }
-    bool operator!=(ShaderObject const & rhs) { return(!(this->id == rhs.id)); }
-    operator int() const { return id; }
-    
-private:
-    GLuint id;
-    ShaderObjectType type;
-    bool hasSource;
-    bool isCompiled;
-};
-
-enum class VertexBufferType
-{
-    OPENGL_STATIC_DRAW   = GL_STATIC_DRAW,
-    OPENGL_DYNAMIC_DRAW  = GL_DYNAMIC_DRAW,
-};
-
-class VertexBufferObject
-{
-    friend class OpenglLayer;
-    
-public:
-    VertexBufferObject()
-    :
-    id(OPENGL_INVALID_OBJECT)
+    class ShaderProgram
     {
-    }
+        friend class OpenglLayer;
+        
+    public:
+        ShaderProgram()
+        :
+        m_id(OPENGL_INVALID_OBJECT),
+        m_linked(false)
+        {
+        }
+        
+        //TODO make opporators only visable to OpenglLayer
+        bool operator==(ShaderProgram const & rhs) { return(this->m_id == rhs.m_id);}
+        bool operator!=(ShaderProgram const & rhs) { return(!(this->m_id == rhs.m_id));}
+        operator int() const { return m_id;}
+        
+    private:
+        GLuint                    m_id;
+        std::vector<ShaderObject> m_shaderObjects;
+        bool                      m_linked;
+    };
+    /*----------------------------------------------------------------------------------------------*/
     
-    bool operator==(VertexBufferObject const & rhs) { return(this->id == rhs.id); }
-    bool operator!=(VertexBufferObject const & rhs) { return(!(this->id == rhs.id)); }
-    operator int() const { return id; }
     
-private:
-    GLuint id;
-};
-
-class VertexArrayObject
-{
-    friend class OpenglLayer;
-    
-public:
-    VertexArrayObject()
-    :
-    id(OPENGL_INVALID_OBJECT)
+    /*Geometry Classes*/
+    /*----------------------------------------------------------------------------------------------*/
+    enum class VertexBufferType
     {
-    }
+        STATIC_DRAW   = GL_STATIC_DRAW,
+        DYNAMIC_DRAW  = GL_DYNAMIC_DRAW,
+    };
     
-    bool operator==(VertexArrayObject const & rhs) { return(this->id == rhs.id); }
-    bool operator!=(VertexArrayObject const & rhs) { return(!(this->id == rhs.id)); }
-    operator int() const { return id; }
+    class VertexBufferObject
+    {
+        friend class OpenglLayer;
+        
+    public:
+        VertexBufferObject()
+        :
+        m_id(OPENGL_INVALID_OBJECT)
+        {
+        }
+        
+        bool operator==(VertexBufferObject const & rhs) { return(this->m_id == rhs.m_id); }
+        bool operator!=(VertexBufferObject const & rhs) { return(!(this->m_id == rhs.m_id)); }
+        operator int() const { return m_id; }
+        
+    private:
+        GLuint m_id;
+    };
     
-private:
-    GLuint id;
-};
-
-class OpenglLayer
-{
-public:
-    OpenglLayer();
-    ~OpenglLayer();
-    
-    bool init();
-    void dispose();
-    
-    /*Info functions*/
-    /*----------------------------------------------------------------------------------------------*/
-    int getMajor() const;
-    int getMinor() const;
-    std::string getInfo() const;
-    /*----------------------------------------------------------------------------------------------*/
-    
-    void checkOpenGLError(const char * stmt, const char * fname, int line) const;
-    
-    /*
-     *Order of shader Program creation*
-     - create a shader progarm
-     - create a shader object
-     - compile shader object
-     - attach objects to program
-     - bind attrib locations ? optional
-     - link program
-     */
-    
-    /*Shader functions*/
-    /*----------------------------------------------------------------------------------------------*/
-    ShaderProgram createShaderProgram() const;
-    ShaderObject createShaderObject(ShaderObjectType const & type) const;
-    void attachSourceToShaderObject(ShaderObject & object, std::string const & source) const;
-    void compileShaderObject(ShaderObject & object) const;
-    void attachShaderObjectToProgram(ShaderProgram const & program, ShaderObject const & object) const;
-    void detachShaderObjectFromProgram(ShaderProgram const & program, ShaderObject const & object) const;
-    void detachAllShaderObjectsFromProgram(ShaderProgram const & program) const;
-    void detachAndDeleteShaderObjectFromProgram(ShaderProgram const & program, ShaderObject const & object) const;
-    void detachAndDeleteAllShaderObjectsFromProgram(ShaderProgram const & program) const;
-    void linkProgram(ShaderProgram & program);
-    void deleteShaderProgram(ShaderProgram const & program) const;
-    void deleteShaderObject(ShaderObject const & object) const;
-    void bindShaderProgram(ShaderProgram const & program);
-    /*----------------------------------------------------------------------------------------------*/
-    
-    /*
-     *Order of texture creation*
-     -
-     */
-    
-    /*Texture functions*/
-    /*----------------------------------------------------------------------------------------------*/
-    
+    class VertexArrayObject
+    {
+        friend class OpenglLayer;
+        
+    public:
+        VertexArrayObject()
+        :
+        m_id(OPENGL_INVALID_OBJECT)
+        {
+        }
+        
+        bool operator==(VertexArrayObject const & rhs) { return(this->m_id == rhs.m_id); }
+        bool operator!=(VertexArrayObject const & rhs) { return(!(this->m_id == rhs.m_id)); }
+        operator int() const { return m_id; }
+        
+    private:
+        GLuint m_id;
+    };
     /*----------------------------------------------------------------------------------------------*/
     
     
-    /*
-     *Order of vertex creation*
-     -
-     */
-    
-    /*Texture functions*/
-    /*----------------------------------------------------------------------------------------------*/
-    VertexBufferObject createVertexBufferObject(VertexBufferType const & type, GLfloat points[], int numberOfPoints);
-    VertexArrayObject createVertexArrayObject();
+    /*Texture classes*/
     /*----------------------------------------------------------------------------------------------*/
     
+    enum class TextureTarget
+    {
+        TEXTURE_1D                   = GL_TEXTURE_1D,
+        TEXTURE_2D                   = GL_TEXTURE_2D,
+        TEXTURE_3D                   = GL_TEXTURE_3D,
+        TEXTURE_1D_ARRAY             = GL_TEXTURE_1D_ARRAY,
+        TEXTURE_2D_ARRAY             = GL_TEXTURE_2D_ARRAY,
+        TEXTURE_RECTANGLE            = GL_TEXTURE_RECTANGLE,
+        TEXTURE_CUBE_MAP             = GL_TEXTURE_CUBE_MAP,
+        TEXTURE_CUBEMAP_ARRAY        = GL_TEXTURE_CUBE_MAP_ARRAY,
+        TEXUTRE_BUFFER               = GL_TEXTURE_BUFFER,
+        TEXTURE_2D_MULTISAMPLE       = GL_TEXTURE_2D_MULTISAMPLE,
+        TEXTURE_2D_MULTISAMPLE_ARRAY = GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
+    };
     
-private:
-    //std::vector<ShaderProgram>      m_programs;
-    //std::vector<ShaderObject>       m_shaderObjects;
-    //std::vector<VertexBufferObject> m_vertexBuffersObjects;
-    //std::vector<VertexArrayObject>  m_vertexArrayObjects;
+    enum class TextureFilter
+    {
+        LINEAR                       = GL_LINEAR,
+        NEAREST                      = GL_NEAREST,
+        LINEAR_MIPMAP_LINEAR         = GL_LINEAR_MIPMAP_LINEAR,
+        LINEAR_MIPMAP_NEAREST        = GL_LINEAR_MIPMAP_NEAREST,
+        NEAREST_MIPMAP_NEAREST       = GL_NEAREST_MIPMAP_NEAREST,
+        NEAREST_MIPMAP_LINEAR        = GL_NEAREST_MIPMAP_LINEAR,
+    };
     
-    int  m_majorVersion;
-    int  m_minorVersion;
-    bool m_initialised;
+    enum class TextureFormat
+    {
+        // normal colour formats
+        
+        // special colour formats
+        R3_G3_B2 = GL_R3_G3_B2,
+        RGB5_A1 = GL_RGB5_A1,
+        RGB10_A2 = GL_RGB10_A2,
+        RGB10_A2UI = GL_RGB10_A2UI,
+        R11F_G11F_B10F = GL_R11F_G11F_B10F,
+        RGB9_E5 = GL_RGB9_E5,
+        // sRGB colour space
+        SRGB8 = GL_SRGB8,
+        SRGB8_ALPHA8 = GL_SRGB8_ALPHA8,
+        // compressed formats
+        // TODO
+    };
     
-    ShaderProgram m_boundProgram;
-};
+    class TextureSampler
+    {
+        friend class OpenglLayer;
+        
+    public:
+        TextureSampler(TextureFilter magFilter = TextureFilter::LINEAR, TextureFilter minFilter = TextureFilter::LINEAR, bool genMipmaps = false)
+        :
+        m_id(OPENGL_INVALID_OBJECT),
+        m_magFilter(magFilter),
+        m_minFilter(minFilter),
+        m_genMipmaps(genMipmaps)
+        {
+        }
+    private:
+        GLuint        m_id;
+        TextureFilter m_magFilter;
+        TextureFilter m_minFilter;
+        bool          m_genMipmaps;
+    };
+    
+    class Texture
+    {
+        friend class OpenglLayer;
+        
+    public:
+        Texture()
+        :
+        m_id(OPENGL_INVALID_OBJECT),
+        m_width(0),
+        m_height(0),
+        m_target(TextureTarget::TEXTURE_2D),
+        m_sampler(/*use default args*/)
+        {
+        }
+        
+    private:
+        GLuint         m_id;
+        GLuint         m_width;
+        GLuint         m_height;
+        TextureTarget  m_target;
+        TextureSampler m_sampler;
+    };
+    /*----------------------------------------------------------------------------------------------*/
+    
+    
+    class OpenglLayer
+    {
+    public:
+        OpenglLayer();
+        ~OpenglLayer();
+        
+        bool init();
+        void dispose();
+        
+        /*Info functions*/
+        /*----------------------------------------------------------------------------------------------*/
+        constexpr int getMajor() const;
+        constexpr int getMinor() const;
+        constexpr int getMinimumRequiredVersionMajor() const;
+        constexpr int getMinimumRequiredVersionMinor() const;
+        std::string getInfo() const;
+        /*----------------------------------------------------------------------------------------------*/
+        
+        void checkOpenGLError(const char * stmt, const char * fname, int line) const;
+        
+        /*
+         *Order of shader Program creation*
+         - create a shader progarm
+         - create a shader object
+         - compile shader object
+         - attach objects to program
+         - bind attrib locations ? optional
+         - link program
+         */
+        
+        /*Shader functions*/
+        /*----------------------------------------------------------------------------------------------*/
+        ShaderProgram createShaderProgram() const;
+        ShaderObject createShaderObject(ShaderObjectType const & type) const;
+        void attachSourceToShaderObject(ShaderObject & object, std::string const & source) const;
+        void compileShaderObject(ShaderObject & object) const;
+        void attachShaderObjectToProgram(ShaderProgram & program, ShaderObject const & object) const;
+        void detachShaderObjectFromProgram(ShaderProgram & program, ShaderObject const & object) const;
+        void detachAllShaderObjectsFromProgram(ShaderProgram & program) const;
+        void detachAndDeleteShaderObjectFromProgram(ShaderProgram & program, ShaderObject const & object) const;
+        void detachAndDeleteAllShaderObjectsFromProgram(ShaderProgram & program) const;
+        void linkProgram(ShaderProgram & program, bool deleteShaderObjects = true);
+        void deleteShaderProgram(ShaderProgram & program) const;
+        void deleteShaderObject(ShaderObject & object) const;
+        void bindShaderProgram(ShaderProgram const & program);
+        /*----------------------------------------------------------------------------------------------*/
+        
+        /*
+         *Order of texture creation*
+         -
+         */
+        
+        /*Texture functions*/
+        /*----------------------------------------------------------------------------------------------*/
+        Texture createTexture(unsigned char * data, TextureTarget const & target, TextureSampler const & sampler, TextureFormat const & type) const;
+        /*----------------------------------------------------------------------------------------------*/
+        
+        
+        /*
+         *Order of vertex creation*
+         -
+         */
+        
+        /*Geometry functions*/
+        /*----------------------------------------------------------------------------------------------*/
+        VertexBufferObject createVertexBufferObject(VertexBufferType const & type, GLfloat points[], int numberOfPoints);
+        VertexArrayObject createVertexArrayObject();
+        /*----------------------------------------------------------------------------------------------*/
+        
+        
+    private:
+        //std::vector<ShaderProgram>      m_programs;
+        //std::vector<ShaderObject>       m_shaderObjects;
+        //std::vector<VertexBufferObject> m_vertexBuffersObjects;
+        //std::vector<VertexArrayObject>  m_vertexArrayObjects;
+        
+        int  m_majorVersion;
+        int  m_minorVersion;
+        bool m_initialised;
+        
+        ShaderProgram m_boundProgram;
+    };
+}
 #endif /* OpenGLContext_hpp */
