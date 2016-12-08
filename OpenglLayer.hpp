@@ -7,17 +7,25 @@
 
 /*
  class information
- 
  - opengl must be linked with this class
  - on windows glew must be linked with this class
  - a context must be created before any of the methods in this class are used
  - the init() function must be called before any other function in this class
+ 
+ TODO
+ - add ifdefs for opengl versions
+ - add context creation into layer so it is based on the version defines.??
+ - add master function for shader creation
+ - figure out some template magic for the TexturePixelData class and then pass it into the create texture function !(:
+ - if defs for DSA opengl
+ - finish of createTexture function - currently only works for certain texture types
+ - replace glew with something ?? for the windows version
  */
-#ifndef OpenGLContext_hpp
-#define OpenGLContext_hpp
+
+#ifndef OpenglLayer_hpp
+#define OpenglLayer_hpp
 
 #include <stdio.h>
-#include <Array>
 #include <string>
 #include <vector>
 
@@ -28,26 +36,19 @@
 #define OPENGL_INVALID_OBJECT 0
 
 #ifdef __APPLE__
-//#include <OpenGL/gl.h> // includes 2.1 functionality
-#include <OpenGL/gl3.h> // includes 3.2 functionality
+#include <OpenGL/gl3.h> // includes 3.2 + functionality
 #elif _WIN32
 #include "GL/glew.h"
 #endif
 
-
-
-//assert(obj.boolean) = if boolean is false then fail
-//assert(1 == 0) if false then fail kinda annoying
-
-/*
- TODO
- - add ifdefs for opengl versions
- - add context creation into layer so it is based on the version defines.
- - think about max objects per program
- */
-
-namespace OpenglLayer
+namespace gl
 {
+    
+    /* General Classes */
+    /*----------------------------------------------------------------------------------------------*/
+    
+    /*----------------------------------------------------------------------------------------------*/
+    
     /* Shader Classes */
     /*----------------------------------------------------------------------------------------------*/
     enum class ShaderObjectType
@@ -114,7 +115,6 @@ namespace OpenglLayer
     };
     /*----------------------------------------------------------------------------------------------*/
     
-    
     /*Geometry Classes*/
     /*----------------------------------------------------------------------------------------------*/
     enum class VertexBufferType
@@ -163,105 +163,20 @@ namespace OpenglLayer
     /*----------------------------------------------------------------------------------------------*/
     
     
-    /*Texture classes*/
     /*----------------------------------------------------------------------------------------------*/
-    
-    enum class TextureTarget
-    {
-        TEXTURE_1D                   = GL_TEXTURE_1D,
-        TEXTURE_2D                   = GL_TEXTURE_2D,
-        TEXTURE_3D                   = GL_TEXTURE_3D,
-        TEXTURE_1D_ARRAY             = GL_TEXTURE_1D_ARRAY,
-        TEXTURE_2D_ARRAY             = GL_TEXTURE_2D_ARRAY,
-        TEXTURE_RECTANGLE            = GL_TEXTURE_RECTANGLE,
-        TEXTURE_CUBE_MAP             = GL_TEXTURE_CUBE_MAP,
-        TEXTURE_CUBEMAP_ARRAY        = GL_TEXTURE_CUBE_MAP_ARRAY,
-        TEXUTRE_BUFFER               = GL_TEXTURE_BUFFER,
-        TEXTURE_2D_MULTISAMPLE       = GL_TEXTURE_2D_MULTISAMPLE,
-        TEXTURE_2D_MULTISAMPLE_ARRAY = GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
-    };
-    
-    enum class TextureFilter
-    {
-        LINEAR                       = GL_LINEAR,
-        NEAREST                      = GL_NEAREST,
-        LINEAR_MIPMAP_LINEAR         = GL_LINEAR_MIPMAP_LINEAR,
-        LINEAR_MIPMAP_NEAREST        = GL_LINEAR_MIPMAP_NEAREST,
-        NEAREST_MIPMAP_NEAREST       = GL_NEAREST_MIPMAP_NEAREST,
-        NEAREST_MIPMAP_LINEAR        = GL_NEAREST_MIPMAP_LINEAR,
-    };
-    
-    enum class TextureFormat
-    {
-        // normal colour formats
-        
-        // special colour formats
-        R3_G3_B2 = GL_R3_G3_B2,
-        RGB5_A1 = GL_RGB5_A1,
-        RGB10_A2 = GL_RGB10_A2,
-        RGB10_A2UI = GL_RGB10_A2UI,
-        R11F_G11F_B10F = GL_R11F_G11F_B10F,
-        RGB9_E5 = GL_RGB9_E5,
-        // sRGB colour space
-        SRGB8 = GL_SRGB8,
-        SRGB8_ALPHA8 = GL_SRGB8_ALPHA8,
-        // compressed formats
-        // TODO
-    };
-    
-    class TextureSampler
-    {
-        friend class OpenglLayer;
-        
-    public:
-        TextureSampler(TextureFilter magFilter = TextureFilter::LINEAR, TextureFilter minFilter = TextureFilter::LINEAR, bool genMipmaps = false)
-        :
-        m_id(OPENGL_INVALID_OBJECT),
-        m_magFilter(magFilter),
-        m_minFilter(minFilter),
-        m_genMipmaps(genMipmaps)
-        {
-        }
-    private:
-        GLuint        m_id;
-        TextureFilter m_magFilter;
-        TextureFilter m_minFilter;
-        bool          m_genMipmaps;
-    };
-    
-    class Texture
-    {
-        friend class OpenglLayer;
-        
-    public:
-        Texture()
-        :
-        m_id(OPENGL_INVALID_OBJECT),
-        m_width(0),
-        m_height(0),
-        m_target(TextureTarget::TEXTURE_2D),
-        m_sampler(/*use default args*/)
-        {
-        }
-        
-    private:
-        GLuint         m_id;
-        GLuint         m_width;
-        GLuint         m_height;
-        TextureTarget  m_target;
-        TextureSampler m_sampler;
-    };
+    /* OpenglLayer - main class */
     /*----------------------------------------------------------------------------------------------*/
-    
-    
     class OpenglLayer
     {
     public:
+        
+        /*creation and destruction*/
+        /*----------------------------------------------------------------------------------------------*/
         OpenglLayer();
         ~OpenglLayer();
-        
         bool init();
         void dispose();
+        /*----------------------------------------------------------------------------------------------*/
         
         /*Info functions*/
         /*----------------------------------------------------------------------------------------------*/
@@ -269,10 +184,8 @@ namespace OpenglLayer
         constexpr int getMinor() const;
         constexpr int getMinimumRequiredVersionMajor() const;
         constexpr int getMinimumRequiredVersionMinor() const;
-        std::string getInfo() const;
+        std::string   getInfo()  const;
         /*----------------------------------------------------------------------------------------------*/
-        
-        void checkOpenGLError(const char * stmt, const char * fname, int line) const;
         
         /*
          *Order of shader Program creation*
@@ -301,22 +214,6 @@ namespace OpenglLayer
         void bindShaderProgram(ShaderProgram const & program);
         /*----------------------------------------------------------------------------------------------*/
         
-        /*
-         *Order of texture creation*
-         -
-         */
-        
-        /*Texture functions*/
-        /*----------------------------------------------------------------------------------------------*/
-        Texture createTexture(unsigned char * data, TextureTarget const & target, TextureSampler const & sampler, TextureFormat const & type) const;
-        /*----------------------------------------------------------------------------------------------*/
-        
-        
-        /*
-         *Order of vertex creation*
-         -
-         */
-        
         /*Geometry functions*/
         /*----------------------------------------------------------------------------------------------*/
         VertexBufferObject createVertexBufferObject(VertexBufferType const & type, GLfloat points[], int numberOfPoints);
@@ -325,16 +222,39 @@ namespace OpenglLayer
         
         
     private:
-        //std::vector<ShaderProgram>      m_programs;
-        //std::vector<ShaderObject>       m_shaderObjects;
-        //std::vector<VertexBufferObject> m_vertexBuffersObjects;
-        //std::vector<VertexArrayObject>  m_vertexArrayObjects;
         
-        int  m_majorVersion;
-        int  m_minorVersion;
-        bool m_initialised;
+        // for tracking creation and destruction
+        //-----------------------------------------------//
+        //std::vector<ShaderProgram>         m_programs;
+        //std::vector<ShaderObject>          m_shaderObjects;
+        //std::vector<VertexBufferObject>    m_vertexBuffersObjects;
+        //std::vector<VertexArrayObject>     m_vertexArrayObjects;
+        //-----------------------------------------------//
         
-        ShaderProgram m_boundProgram;
+        // shader section variables
+        //-----------------------------------------------//
+        ShaderProgram                        m_boundProgram;
+        //-----------------------------------------------//
+        
+        // texture variables
+        //-----------------------------------------------//
+        
+        //-----------------------------------------------//
+        
+        // general information
+        //-----------------------------------------------//
+        int                                  m_majorVersion;
+        int                                  m_minorVersion;
+        bool                                 m_initialised;
+        std::string                          m_openglLayerInfo;
+        //-----------------------------------------------//
+        
+        
+        // private functions
+        //-----------------------------------------------//
+        void checkOpenGLError(const char * stmt, const char * fname, int line) const;
+        //-----------------------------------------------//
     };
 }
-#endif /* OpenGLContext_hpp */
+/*----------------------------------------------------------------------------------------------*/
+#endif /* OpenglLayer_hpp */

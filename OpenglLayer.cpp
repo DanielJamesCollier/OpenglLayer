@@ -22,7 +22,7 @@
 #   include <Wingdi.h>
 #endif
 
-namespace OpenglLayer
+namespace gl
 {
     /*
      an opengl context must be created before using this class
@@ -64,6 +64,17 @@ namespace OpenglLayer
         return false;
 #endif
 #endif
+        
+        
+        // get info
+        {
+            m_openglLayerInfo = R"(-----------------------------
+            -      OPENGL LAYER INFO     -
+            -----------------------------
+            
+            
+            -----------------------------)";
+        }
         
         m_initialised = true;
         return true;
@@ -131,7 +142,7 @@ namespace OpenglLayer
     std::string
     OpenglLayer::getInfo() const
     {
-        return ""; //TODO - returns major - minor - renderer.....
+        return ""; //TODO - returns major - minor - renderer..... print out all max values ... max texture units ect..
     }
     
     //-----------------------------------------------//
@@ -465,17 +476,99 @@ namespace OpenglLayer
     }
     
     //-----------------------------------------------//
-    Texture
-    OpenglLayer::createTexture(unsigned char *  pixelData, TextureTarget const & target, TextureSampler const & sampler, TextureFormat const & type) const
-    {
-        assert(pixelData != nullptr && "Pixel data is null");
-        
-        Texture texture;
-        
-        GL_CHECK(glGenTextures(1, &texture.m_id));
-        
-        return texture;
-    }
+    //    GLuint OpenglLayer::ConvertIndexToTextureTarget(GLuint index) const
+    //    {
+    //        switch (index)
+    //        {
+    //            case 0:
+    //                return GL_TEXTURE_1D;
+    //            case 1:
+    //                return GL_TEXTURE_2D;
+    //            case 2:
+    //                return GL_TEXTURE_3D;
+    //            case 3:
+    //                return GL_TEXTURE_1D_ARRAY;
+    //            case 4:
+    //                return GL_TEXTURE_2D_ARRAY;
+    //            case 5:
+    //                return GL_TEXTURE_RECTANGLE;
+    //            case 6:
+    //                return GL_TEXTURE_CUBE_MAP;
+    //            case 7:
+    //                return GL_TEXTURE_CUBE_MAP_ARRAY;
+    //            case 8:
+    //                return GL_TEXTURE_BUFFER;
+    //            case 9:
+    //                return GL_TEXTURE_2D_MULTISAMPLE;
+    //            case 10:
+    //                return GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+    //            default:
+    //                printf("TextureBinderError - Error: invalid index");
+    //                return 11; // to chang
+    //        }
+    //    }
+    //
+    //    //-----------------------------------------------//
+    //    GLuint OpenglLayer::ConvertTextureTargetToIndex(TextureTarget const & target) const
+    //    {
+    //
+    //        GLenum tar = static_cast<GLenum>(target);
+    //
+    //        switch (tar)
+    //        {
+    //            case GL_TEXTURE_1D:
+    //                return 0;
+    //            case GL_TEXTURE_2D:
+    //                return 1;
+    //            case GL_TEXTURE_3D:
+    //                return 2;
+    //            case GL_TEXTURE_1D_ARRAY:
+    //                return 3;
+    //            case GL_TEXTURE_2D_ARRAY:
+    //                return 4;
+    //            case GL_TEXTURE_RECTANGLE:
+    //                return 5;
+    //            case GL_TEXTURE_CUBE_MAP:
+    //                return 6;
+    //            case GL_TEXTURE_CUBE_MAP_ARRAY:
+    //                return 7;
+    //            case GL_TEXTURE_BUFFER:
+    //                return 8;
+    //            case GL_TEXTURE_2D_MULTISAMPLE:
+    //                return 9;
+    //            case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+    //                return 10;
+    //            default:
+    //                printf("TextureBinderError - Error: invalid target");
+    //
+    //                return GL_INVALID_OPERATION;
+    //        }
+    //    }
+    
+    //-----------------------------------------------//
+    //    void
+    //    OpenglLayer::bindTexture(GLuint unit, Texture const & texture)
+    //    {
+    //        assert(unit <= m_maxCombinedTextureImageUnits);
+    //
+    //        GLuint targetIndex = ConvertTextureTargetToIndex(texture.m_target);
+    //
+    //        // check if the texture trying to be bound is allready bound
+    //        if(m_boundTextures.at(unit).at(targetIndex) == texture.m_id)
+    //        {
+    //            return;
+    //        }
+    //        else
+    //        {
+    //            if(m_activeUnit != unit)
+    //            {
+    //                GL_CHECK(glActiveTexture(GL_TEXTURE0 + unit));
+    //                m_activeUnit = unit;
+    //            }
+    //
+    //            GL_CHECK(glBindTexture(static_cast<GLenum>(texture.m_target), texture.m_id));
+    //        }
+    //    }
     
     //-----------------------------------------------//
     VertexBufferObject
@@ -488,7 +581,7 @@ namespace OpenglLayer
         GL_CHECK(glBufferData(GL_ARRAY_BUFFER, numberOfPoints * sizeof(float), points, static_cast<GLenum>(type)));
         GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
         
-        // m_vertexBuffersObjects.push_back(vbo);
+        // m_vertexBuffersObjects.push_back(vbo)
         
         return vbo;
     }
@@ -500,6 +593,7 @@ namespace OpenglLayer
         VertexArrayObject vao;
         
         GL_CHECK(glGenVertexArrays(1, &vao.m_id));
+        
         
         //m_vertexArrayObjects.push_back(vao);
         
