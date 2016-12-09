@@ -52,6 +52,9 @@ glShaderLayer.bindShaderProgram(program);
 ```
 
 ###Texture Creation
+
+A vector of floats is displayed in this example butany integral or floating point data type can be used
+
 ```cpp
 using namespace glLayer;
 
@@ -72,6 +75,9 @@ Texture tex2d = glTextureLayer.createTexture2D(pixels, 2, 2, TexturePixelFormat:
 ```
 
 ###How to draw ?
+To render something you must use the OpenglDrawLayer, commands are passed to the draw layer using 
+addDrawCommand(..). once the comand queue is pupulated proccessDrawCommands() can then be called.
+After processDrawCommands() is called you must swap the back buffer.
 ```cpp
 using namespace glLayer;
 ```
