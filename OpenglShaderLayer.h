@@ -52,10 +52,10 @@
 #define GL_CHECK(stmt) do { stmt; checkOpenGLError(#stmt,__FILE__,__LINE__); } while(0)
 #else
 #define GL_CHECK(stmt) stmt
-#endif // DEBUG
-#endif // GL_CHECK
+#endif//DEBUG
+#endif//GL_CHECK
 
-namespace gl
+namespace glLayer
 {
     /* Shader Classes */
     /*----------------------------------------------------------------------------------------------*/
@@ -76,7 +76,7 @@ namespace gl
     class ShaderObject
     {
         friend class OpenglShaderLayer;
-        
+        friend class OpenglDrawLayer;
     public:
         ShaderObject()
         :
@@ -102,6 +102,7 @@ namespace gl
     class ShaderProgram
     {
         friend class OpenglShaderLayer;
+        friend class OpenglDrawLayer;
         
     public:
         ShaderProgram()
@@ -121,22 +122,15 @@ namespace gl
         std::vector<ShaderObject> m_shaderObjects;
         bool                      m_linked;
     };
-    /*----------------------------------------------------------------------------------------------*/
-    /* OpenglLayer - main class */
-    /*----------------------------------------------------------------------------------------------*/
+    
     class OpenglShaderLayer
     {
     public:
         
-        /*creation and destruction*/
-        /*----------------------------------------------------------------------------------------------*/
         OpenglShaderLayer()
         :
-        m_initialised(false),
-        m_majorVersion(OPENGL_MAJOR_VERSION),
-        m_minorVersion(OPENGL_MAJOR_VERSION)
-        {
-        }
+        m_initialised(false)
+        {}
         
         ~OpenglShaderLayer() {
             dispose();
@@ -147,8 +141,6 @@ namespace gl
                 assert(false && "double init you noob");
                 return false;
             }
-            
-            
             m_initialised = true;
             return m_initialised;
         }
@@ -160,23 +152,6 @@ namespace gl
             m_initialised = false;
         }
         
-        /*----------------------------------------------------------------------------------------------*/
-        
-        /*Info functions*/
-        /*----------------------------------------------------------------------------------------------*/
-        constexpr int getMajor() const {
-            return m_majorVersion;
-        }
-        
-        constexpr int getMinor() const {
-            return m_minorVersion;
-        }
-        
-        std::string getInfo()  const {
-            return m_openglLayerInfo;
-        }
-        /*----------------------------------------------------------------------------------------------*/
-        
         /*
          *Order of shader Program creation*
          - create a shader progarm
@@ -187,8 +162,6 @@ namespace gl
          - link program
          */
         
-        /*Shader functions*/
-        /*----------------------------------------------------------------------------------------------*/
         ShaderProgram createShaderProgram() const {
             ShaderProgram shaderProgram;
             
@@ -401,21 +374,10 @@ namespace gl
         /*----------------------------------------------------------------------------------------------*/
         
     private:
-        // shader section variables
-        //-----------------------------------------------//
-        ShaderProgram                        m_boundProgram;
-        //-----------------------------------------------//
         
-        // general information
-        //-----------------------------------------------//
-        int                                  m_majorVersion;
-        int                                  m_minorVersion;
-        bool                                 m_initialised;
-        std::string                          m_openglLayerInfo;
-        //-----------------------------------------------//
+        ShaderProgram m_boundProgram;
+        bool          m_initialised;
         
-        // private functions
-        //-----------------------------------------------//
         void checkOpenGLError(const char * stmt, const char * fname, int line) const {
             // TODO: add assert functionality
             GLenum err;
@@ -467,8 +429,7 @@ namespace gl
                 << std::endl;
             }
         }
-        //-----------------------------------------------//
     };
 }
-/*----------------------------------------------------------------------------------------------*/
+
 #endif /* OpenglLayer_hpp */
