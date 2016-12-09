@@ -6,7 +6,7 @@ Notess
 - make sure that the opengl context is created before any of the functions are called
 
 ###Shader Program Creation
-'''c++
+```cpp
 
 // vertex shder
 std::string vertexCode = R"(
@@ -43,14 +43,14 @@ glShaderLayer.attachShaderObjectToProgram(program, fragment);
 glShaderLayer.linkProgram(program);
 
 glShaderLayer.bindShaderProgram(program);
-'''
+```
 
 ###Texture Creation
-'''c++
-
-'''
+```cpp
+int i = 0;
+```
 
 ###Texture Creation
-'''c++
+```cpp
 
-'''
+```
