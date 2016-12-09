@@ -53,7 +53,7 @@ glShaderLayer.bindShaderProgram(program);
 
 ###Texture Creation
 
-A vector of floats is displayed in this example butany integral or floating point data type can be used
+A vector of floats is displayed in this example but any integral or floating point data type can be used
 
 ```cpp
 using namespace glLayer;

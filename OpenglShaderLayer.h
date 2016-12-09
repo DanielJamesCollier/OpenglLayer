@@ -34,7 +34,7 @@
 
 // platform dependent includes
 #ifdef __APPLE__
-#include <OpenGL/gl3.h> // includes 3.2 + functionality
+#include <OpenGL/gl3.h>
 #include <OpenGL/gl3ext.h>
 #elif _WIN32
 #include "GL/glew.h"
@@ -366,59 +366,23 @@ namespace glLayer
             object.m_id = OPENGL_INVALID_OBJECT;
         }
         
-        void bindShaderProgram(ShaderProgram const & program) {
-            assert(program != OPENGL_INVALID_OBJECT && "the program being bound is in an invalid state");
-            
-            GL_CHECK(glUseProgram(program.m_id));
-        }
-        /*----------------------------------------------------------------------------------------------*/
-        
     private:
-        
-        ShaderProgram m_boundProgram;
-        bool          m_initialised;
+        bool m_initialised;
         
         void checkOpenGLError(const char * stmt, const char * fname, int line) const {
             // TODO: add assert functionality
             GLenum err;
             
-            while((err = glGetError()) != GL_NO_ERROR)
-            {
+            while((err = glGetError()) != GL_NO_ERROR) {
                 std::string errorType;
                 
-                switch(err)
-                {
-                    case GL_INVALID_OPERATION:
-                    {
-                        errorType = "INVALID_OPERATION";
-                        break;
-                    }
-                    case GL_INVALID_ENUM:
-                    {
-                        errorType = "INVALID_ENUM";
-                        break;
-                    }
-                        
-                    case GL_INVALID_VALUE:
-                    {
-                        errorType = "INVALID_VALUE";
-                        break;
-                    }
-                    case GL_OUT_OF_MEMORY:
-                    {
-                        errorType = "OUT_OF_MEMORY";
-                        break;
-                    }
-                    case GL_INVALID_FRAMEBUFFER_OPERATION:
-                    {
-                        errorType = "INVALID_FRAMEBUFFER_OPERATION";
-                        break;
-                    }
-                    default:
-                    {
-                        errorType = "UKNOWN ERROR";
-                        break;
-                    }
+                switch(err) {
+                    case GL_INVALID_OPERATION:             errorType = "INVALID_OPERATION";             break;
+                    case GL_INVALID_ENUM:                  errorType = "INVALID_ENUM";                  break;
+                    case GL_INVALID_VALUE:                 errorType = "INVALID_VALUE";                 break;
+                    case GL_OUT_OF_MEMORY:                 errorType = "OUT_OF_MEMORY";                 break;
+                    case GL_INVALID_FRAMEBUFFER_OPERATION: errorType = "INVALID_FRAMEBUFFER_OPERATION"; break;
+                    default:                               errorType = "UKNOWN ERROR - FUCK SAKE";      break;
                 }
                 
                 std::cerr << "-----------------------------------------------------------------------------\nOPENGL ERROR: "<< errorType
