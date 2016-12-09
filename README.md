@@ -8,6 +8,8 @@ Notess
 ###Shader Program Creation
 ```cpp
 
+using namespace glLayer;
+
 // vertex shder
 std::string vertexCode = R"(
 
@@ -51,10 +53,25 @@ glShaderLayer.bindShaderProgram(program);
 
 ###Texture Creation
 ```cpp
-int i = 0;
+using namespace glLayer;
+
+std::vector<float> pixels = {/**/0.0f, 0.0f, 0.0f,/**/1.0f, 1.0f, 1.0f,
+                             /**/1.0f, 1.0f, 1.0f,/**/0.0f, 0.0f, 0.0f};
+
+OpenglTextureLayer glTextureLayer;
+
+if(glTextureLayer.init()) {
+    std::cout << "texture layer is okay" << std::endl;
+} else {
+    //handle error
+}
+
+Texture tex1d = glTextureLayer.createTexture1D(pixels, 4 , TexturePixelFormat::RGB, TextureWrapMode::CLAMP_TO_EDGE);
+Texture tex2d = glTextureLayer.createTexture2D(pixels, 2, 2, TexturePixelFormat::RGB, TextureWrapMode::REPEAT, TextureWrapMode::REPEAT);
+
 ```
 
-###Texture Creation
+###How to draw ?
 ```cpp
-
+using namespace glLayer;
 ```
